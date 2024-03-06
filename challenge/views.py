@@ -140,6 +140,7 @@ class ChallengesDetailUserAPIView(generics.GenericAPIView):
         challenge = Challenge.objects.get(id=id)
         print(challenge)
         user_challenge_status = False
+        challenge_complated = False
         user_challenges = UserChallenge.objects.filter(challenge=challenge).order_by('current_mission')
 
         top_players = []
@@ -151,6 +152,8 @@ class ChallengesDetailUserAPIView(generics.GenericAPIView):
             # user_challenge = UserChallenge.objects.get(user_id=user_id, challenge=challenge)
             if user_challenge:
                 user_challenge_status = True
+            if user_challenge.current_mission.mission_order == challenge.mission_count:
+                challenge_complated = True
         except:
             pass
 
@@ -167,7 +170,9 @@ class ChallengesDetailUserAPIView(generics.GenericAPIView):
             "description": challenge.description,
             "status": challenge.status,
             "top_players": top_players,
-            "user_challenge_status": user_challenge_status
+            "user_challenge_status": user_challenge_status,
+            "challenge_complated": challenge_complated,
+            # "image": f"/media/{challenge.image}"
         }
 
         return Response(
@@ -249,7 +254,7 @@ class ChallengesUpdateAPIView(generics.GenericAPIView):
                         user_mission.acceptance = 3
                         user_mission.save()
 
-                        final_xp = level.xp + mission.difficulty
+                        final_xp = level.xp + mission.difficulty * 10
 
                         if final_xp < level.max_xp:
                             level.xp += mission.difficulty * 10
@@ -274,13 +279,21 @@ class ChallengesUpdateAPIView(generics.GenericAPIView):
                                 response_func(True, 'تبریک. شما این مسابقه را با موفقیت به اتمام رساندید', {}),
                                 status=status.HTTP_200_OK
                             )
+
                 #         bayad current mission check she on dorost tare
                 # if user_mission.acceptance == 3:
                 #     return Response(
                 #         response_func(True, "شما این مرحله را قبلا پشت سر گذاشته اید", {}),
                 #         status=status.HTTP_200_OK
                 #     )
-                if answer_is_correct == False:
+
+                if mission.mission_order == challenge.mission_count:
+                    return Response(
+                        response_func(True, 'شما قبلا این مسابقه را به اتمام رساندید', {}),
+                        status=status.HTTP_200_OK
+                    )
+
+                elif answer_is_correct == False:
                     return Response(
                         response_func(True, "پاسخ ارسالی اشتباه است", {}),
                         status=status.HTTP_200_OK
@@ -315,6 +328,48 @@ class ChallengesUpdateAPIView(generics.GenericAPIView):
 
         except:
             return Response(
-                response_func(False, "شما امکان شرکت در این مرحله را ندارید", {}),
+                response_func(False, "متاسفانه امکان شرکت در این مسابقه وجود ندارد", {}),
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class LevelAPIView(generics.GenericAPIView):
+    def get(self,request, user_id):
+        lvl, bool = Level.objects.get_or_create(user_id=user_id)
+
+        data = {
+            "level": lvl.level,
+            "xp": lvl.xp,
+            "max_xp": lvl.max_xp
+                }
+
+        return Response(
+            response_func(True, 'OK', data),
+            status=status.HTTP_200_OK
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+# class UploadAPIView(generics.GenericAPIView):
+#     def post(self, request):
+#         fileToUpload = request.FILES.get('file')
+#         cloudFilename = 'video/' + fileToUpload.name
+#
+#         session = boto3.session.Session(aws_access_key_id='df66a79c-b275-4e33-b575-3b81568b6848',
+#                                         aws_secret_access_key='ce6af7eb5baf6e2cc4b08d408a6e6764273553c1')
+#         s3 = session.resource('s3')
+#         s3.Bucket('sarenakh').put_object(Key=cloudFilename, Body=fileToUpload)
+#
+#         return Response(
+#             response_func(True, 'ok', {}),
+#             status=status.HTTP_200_OK
+#         )

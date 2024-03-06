@@ -1,3 +1,4 @@
+
 from django.db import models
 
 # Create your models here.
@@ -20,6 +21,7 @@ class Challenge(models.Model):
     end_time = models.DateTimeField(verbose_name="challenge end time")
     status = models.BooleanField(verbose_name="challenge status", default=True)
     challenge_type = models.IntegerField(verbose_name="mission type", choices=CHALLENGE_TYPE, default=1)
+    # image = models.FileField(blank=True, null=True)
 
     def __str__(self):
         """String representation of model"""
@@ -97,4 +99,15 @@ class Level(models.Model):
     level = models.IntegerField(verbose_name="user level", default=1)
     xp = models.IntegerField(verbose_name="user xp", default=0)
     max_xp = models.IntegerField(verbose_name="level max xp", default=100)
+
+
+# class Media(models.Model):
+#     media = models.FileField(upload_to='videos/')
+#
+#     def upload_video_to_s3(self):
+#         s3 = boto3.client('s3')
+#         file_name = self.media.name
+#         bucket_name = 'sarenakh'
+#         s3.upload_fileobj(self.media.file, bucket_name, file_name)
+
 
