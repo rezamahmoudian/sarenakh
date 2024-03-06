@@ -24,48 +24,46 @@ class HomeAPIView(generics.GenericAPIView):
     serializer_class = (HomeSerializer,)
 
     def get(self, request):
-
-        # serializer = self.serializer_class(data=request.data)
-        # serializer.is_valid(raise_exception=True)
-
-        medias = [{
-            "id": 1,
-            "address": "media",
-            "model": "challenge"
-        },
-            {
-                "id": 2,
-                "address": "media",
-                "model": "challenge"
-            },
-            {
-                "id": 3,
-                "address": "media",
-                "model": "challenge"
-            }
-        ]
-        # medias = request.data
-        # print(medias)
         data = []
+        user_missions = UserMission.objects.filter(acceptance=3, video_id__gt=0)
 
-        for media in medias:
-            if media['model'] == "challenge":
-                print(media['id'])
-                user_mission = UserMission.objects.get(video_id=media['id'])
-                # user_challenge = UserChallenge.objects.get(challenge_id=user_mission.challenge_id)
-                # mission = Mission.objects.get(id=user_mission.mission_id.id)
+        for user_mission in user_missions:
 
-                media_data = {
-                    "address": media["address"],
-                    "mission_order": user_mission.mission_id.mission_order,
-                    "time": user_mission.time,
-                    "user_id": "",
-                    "profile": "",
-                    "name": "",
-                    "family": ""
-                }
+            user_mission_data = {
+                "user_id": user_mission.user_id,
+                # "mission_id": user_mission.mission_id.id,
+                "time": user_mission.time,
+                "video_id": user_mission.video_id,
+                "challenge_name": user_mission.challenge.name,
+                "mission_name": user_mission.mission_id.name,
+                "video_like": user_mission.like_video
+            }
 
-                data.append(media_data)
+            data.append(user_mission_data)
+
+        return Response(
+            response_func(True, 'OK', data),
+            status=status.HTTP_200_OK
+        )
+class ProfileAPIView(generics.GenericAPIView):
+
+    def get(self, request, user_id):
+        data = []
+        user_missions = UserMission.objects.filter(acceptance=3, video_id__gt=0, user_id=user_id)
+
+        for user_mission in user_missions:
+
+            user_mission_data = {
+                "user_id": user_mission.user_id,
+                # "mission_id": user_mission.mission_id.id,
+                "time": user_mission.time,
+                "video_id": user_mission.video_id,
+                "challenge_name": user_mission.challenge.name,
+                "mission_name": user_mission.mission_id.name,
+                "video_like": user_mission.like_video
+            }
+
+            data.append(user_mission_data)
 
         return Response(
             response_func(True, 'OK', data),
@@ -97,44 +95,44 @@ class ChallengesAPIView(generics.GenericAPIView):
         )
 
 
-class ChallengesDetailAPIView(generics.GenericAPIView):
-    def get(self, request, id):
-        challenge = Challenge.objects.get(id=id)
-        print(challenge)
-        data = {
-            "id": challenge.id,
-            "name": challenge.name,
-            "price": challenge.enter_price,
-            "start_time": challenge.start_time,
-            "end_time": challenge.end_time,
-            "attended_number": challenge.attended_number,
-            "mission_count": challenge.mission_count,
-            "difficulty": challenge.difficulty,
-            "reward_price": challenge.reward_price,
-            "description": challenge.description,
-            "status": challenge.status,
-        }
-
-        return Response(
-            response_func(True, 'OK', data),
-            status=status.HTTP_200_OK
-        )
-
-    def post(self, request, id):
-        # yones
-        user_id = 10
-        challenge = Challenge.objects.get(id=id)
-
-        user_challenge = UserChallenge.objects.create(user_id=user_id, challenge=challenge)
-        user_challenge.save()
-
-        challenge.attended_number += 1
-        challenge.save()
-
-        return Response(
-            response_func(True, 'OK', {}),
-            status=status.HTTP_200_OK
-        )
+# class ChallengesDetailAPIView(generics.GenericAPIView):
+#     def get(self, request, id):
+#         challenge = Challenge.objects.get(id=id)
+#         print(challenge)
+#         data = {
+#             "id": challenge.id,
+#             "name": challenge.name,
+#             "price": challenge.enter_price,
+#             "start_time": challenge.start_time,
+#             "end_time": challenge.end_time,
+#             "attended_number": challenge.attended_number,
+#             "mission_count": challenge.mission_count,
+#             "difficulty": challenge.difficulty,
+#             "reward_price": challenge.reward_price,
+#             "description": challenge.description,
+#             "status": challenge.status,
+#         }
+#
+#         return Response(
+#             response_func(True, 'OK', data),
+#             status=status.HTTP_200_OK
+#         )
+#
+#     def post(self, request, id):
+#         # yones
+#         user_id = 10
+#         challenge = Challenge.objects.get(id=id)
+#
+#         user_challenge = UserChallenge.objects.create(user_id=user_id, challenge=challenge)
+#         user_challenge.save()
+#
+#         challenge.attended_number += 1
+#         challenge.save()
+#
+#         return Response(
+#             response_func(True, 'OK', {}),
+#             status=status.HTTP_200_OK
+#         )
 
 
 class ChallengesDetailUserAPIView(generics.GenericAPIView):
@@ -153,8 +151,6 @@ class ChallengesDetailUserAPIView(generics.GenericAPIView):
             # user_challenge = UserChallenge.objects.get(user_id=user_id, challenge=challenge)
             if user_challenge:
                 user_challenge_status = True
-            else:
-                user_challenge_status = False
         except:
             pass
 
@@ -166,10 +162,12 @@ class ChallengesDetailUserAPIView(generics.GenericAPIView):
             "end_time": challenge.end_time,
             "attended_number": challenge.attended_number,
             "mission_count": challenge.mission_count,
-            "difficulty": challenge.difficulty,
+            "difficulty": DIFFICULTY_CHOICES[challenge.difficulty-1][1],
             "reward_price": challenge.reward_price,
             "description": challenge.description,
             "status": challenge.status,
+            "top_players": top_players,
+            "user_challenge_status": user_challenge_status
         }
 
         return Response(
@@ -177,26 +175,32 @@ class ChallengesDetailUserAPIView(generics.GenericAPIView):
             status=status.HTTP_200_OK
         )
 
-    def post(self, request, id):
-        # yones
-        user_id = 10
+    def post(self, request, id, user_id):
+        user_id = user_id
         challenge = Challenge.objects.get(id=id)
+        mission = Mission.objects.get(challenge=challenge, mission_order=1)
 
-        user_challenge = UserChallenge.objects.create(user_id=user_id, challenge=challenge)
-        user_challenge.save()
+        user_challenge, bool = UserChallenge.objects.get_or_create(user_id=user_id, challenge=challenge, current_mission=mission)
 
-        challenge.attended_number += 1
-        challenge.save()
+        if bool == True:
+            user_challenge.current_mission = mission
+            user_challenge.save()
+            challenge.attended_number += 1
+            challenge.save()
 
-        return Response(
-            response_func(True, 'OK', {}),
-            status=status.HTTP_200_OK
-        )
+            return Response(
+                response_func(True, 'با موفقیت ثبتنام کردید', {}),
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                response_func(True, 'شما قبلا در این مسابقه ثبتنام کرده اید.لطفا وارد مسابقه شوید', {}),
+                status=status.HTTP_200_OK
+            )
+
 
 class ChallengesShowAPIView(generics.GenericAPIView):
-    def get(self, request, id):
-        # yones
-        user_id = 1
+    def get(self, request, id, user_id):
         challenge = Challenge.objects.get(id=id)
         user_challenges = UserChallenge.objects.all()
         user_challenge = user_challenges.get(challenge=challenge, user_id=user_id)
@@ -221,52 +225,96 @@ class ChallengesShowAPIView(generics.GenericAPIView):
 
 
 class ChallengesUpdateAPIView(generics.GenericAPIView):
+    def post(self, request, id, user_id):
+        try:
+            answer = request.data['answer']
 
-    def post(self, request, id):
-        # yones
-        user_id = 1
-        answer = request.data['answer']
+            level = Level.objects.get(user_id=user_id)
+            challenge = Challenge.objects.get(id=id)
 
-        challenge = Challenge.objects.get(id=id)
+            user_challenge = UserChallenge.objects.get(user_id=user_id, challenge=challenge)
+            mission = user_challenge.current_mission
+            user_mission, create_bool = UserMission.objects.get_or_create(user_id=user_id, challenge_id=challenge.id, mission_id=mission)
 
-        user_challenge = UserChallenge.objects.get(user_id=user_id, challenge=challenge)
-        mission = user_challenge.current_mission
-        user_mission = UserMission.objects.get(user_id=user_id, challenge_id=id, mission_id=mission)
-        answers_json = mission.correct_answers
-        print(answers_json)
+            answers_json = mission.correct_answers
+            answer_is_correct = False
 
-        if mission.mission_type == 1:
+            if mission.mission_type == 1:
 
-            for ans in list(answers_json):
-                if answer == ans:
-                    user_mission.acceptance = 3
-                    user_mission.save()
-                    if mission.id < challenge.mission_count:
-                        new_mission = Mission.objects.get(id=mission.id+1)
-                        user_challenge.current_mission = new_mission
-                        user_challenge.save()
-                        # new_user_mission = UserMission.objects.create(user_id=user_id, mission_id=new_mission, challenge=user_challenge, )
+                for ans in answers_json:
 
-                        return Response(
-                            response_func(True, 'مرحله با موفقیت پشت سر گداشته شد', {}),
-                            status=status.HTTP_200_OK
-                        )
-                    else:
-                        return Response(
-                            response_func(True, 'تبریک شما با موفقیت همه ی مراحل را پشت سر گذاشتید', {}),
-                            status=status.HTTP_200_OK
-                        )
-                else:
+                    if (answer == answers_json[ans]) and ( user_mission.acceptance != 3):
+                        answer_is_correct = True
+
+                        user_mission.acceptance = 3
+                        user_mission.save()
+
+                        final_xp = level.xp + mission.difficulty
+
+                        if final_xp < level.max_xp:
+                            level.xp += mission.difficulty * 10
+
+                        else:
+                            level.xp = (level.xp + mission.difficulty * 10) - level.max_xp
+                            level.level += 1
+                        level.save()
+
+                        if mission.mission_order < challenge.mission_count:
+                            new_mission = Mission.objects.get(id=mission.id + 1)
+                            user_challenge.current_mission = new_mission
+                            user_challenge.save()
+                            # new_user_mission = UserMission.objects.create(user_id=user_id, mission_id=new_mission, challenge=user_challenge, )
+
+                            return Response(
+                                response_func(True, 'مرحله با موفقیت پشت سر گذاشته شد', {}),
+                                status=status.HTTP_200_OK
+                            )
+                        else:
+                            return Response(
+                                response_func(True, 'تبریک. شما این مسابقه را با موفقیت به اتمام رساندید', {}),
+                                status=status.HTTP_200_OK
+                            )
+                #         bayad current mission check she on dorost tare
+                # if user_mission.acceptance == 3:
+                #     return Response(
+                #         response_func(True, "شما این مرحله را قبلا پشت سر گذاشته اید", {}),
+                #         status=status.HTTP_200_OK
+                #     )
+                if answer_is_correct == False:
                     return Response(
-                        response_func(True, 'پاسخ ارسالی اشتباه است', {}),
+                        response_func(True, "پاسخ ارسالی اشتباه است", {}),
                         status=status.HTTP_200_OK
                     )
-        else:
-            msg = "لطفا منتظر تایید ویدوی ارسالی بمانید"
-            user_mission.acceptance = 2
-            user_mission.save()
+            else:
+                if request.data['video_id'] and request.data['img_id']:
+                    video_id = request.data['video_id']
+                    image_id = request.data['img_id']
+                    user_mission.image_id = image_id
+                    user_mission.video_id = video_id
+                    user_mission.save()
 
+                elif request.data['video_id']:
+                    video_id = request.data['video_id']
+                    user_mission.video_id = video_id
+                    user_mission.save()
+
+                elif request.data['image_id']:
+                    image_id = request.data['img_id']
+                    user_mission.image_id = image_id
+                    user_mission.save()
+
+
+                msg = "لطفا منتظر تایید ویدوی ارسالی بمانید"
+                user_mission.acceptance = 2
+                user_mission.save()
+
+                return Response(
+                    response_func(True, msg, {}),
+                    status=status.HTTP_200_OK
+                )
+
+        except:
             return Response(
-                response_func(True, msg, {}),
-                status=status.HTTP_200_OK
+                response_func(False, "شما امکان شرکت در این مرحله را ندارید", {}),
+                status=status.HTTP_400_BAD_REQUEST
             )

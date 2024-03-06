@@ -19,4 +19,8 @@ class UserChallengeAdmin(admin.ModelAdmin):
 
 @admin.register(UserMission)
 class UserMission(admin.ModelAdmin):
-    list_display = list_display = ('user_id', 'mission_id', 'challenge', 'answer', 'acceptance')
+    list_display = ('user_id', 'mission_id', 'challenge', 'answer', 'acceptance')
+
+@admin.register(Level)
+class LevelAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'level', 'xp', 'max_xp')
